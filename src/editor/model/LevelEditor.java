@@ -19,10 +19,15 @@ import view.FirstPersonRoom;
 import xml.XMLWriter;
 import editor.controller.EditorUpdateObject;
 
+/**
+ * LevelEditor models the state of the LevelEditor
+ * @author sean
+ *
+ */
 public class LevelEditor extends Observable implements Observer {
 
 	private HashMap<String, FirstPersonRoom> rooms;
-	private HashMap<String, Monster> monsters;
+	private HashMap<String, FirstPersonMonster> monsters;
 	private HashMap<String, Item> items;
 	private String roomsArray[][];
 	private Player player;
@@ -52,7 +57,7 @@ public class LevelEditor extends Observable implements Observer {
 
 	public LevelEditor(int maxX, int maxY) {
 		rooms = new HashMap<String, FirstPersonRoom>();
-		monsters = new HashMap<String, Monster>();
+		monsters = new HashMap<String, FirstPersonMonster>();
 		items = new HashMap<String, Item>();
 		roomsArray = new String[maxX][maxY];
 		player = new Player();
@@ -73,11 +78,11 @@ public class LevelEditor extends Observable implements Observer {
 		}
 
 		// Initialize the monsters
-		Monster kracken = new FirstPersonMonster("Kracken", 10, "Kracken.png");
+		FirstPersonMonster kracken = new FirstPersonMonster("Kracken", 10, "Kracken.png");
 		monsters.put("Kracken", kracken);
-		Monster grendel = new FirstPersonMonster("Grendel", 8, "Grendle.png");
+		FirstPersonMonster grendel = new FirstPersonMonster("Grendel", 8, "Grendle.png");
 		monsters.put("Grendel", grendel);
-		Monster goblin = new FirstPersonMonster("Goblin", 3, "TrollBig.png");
+		FirstPersonMonster goblin = new FirstPersonMonster("Goblin", 3, "TrollBig.png");
 		monsters.put("Goblin", goblin);
 
 		// Create the items
@@ -219,7 +224,7 @@ public class LevelEditor extends Observable implements Observer {
 
 	public void addMonster(String monsterName) {
 		Room room = rooms.get(roomsArray[x][y]);
-		Monster monster = monsters.get(monsterName);
+		FirstPersonMonster monster = (FirstPersonMonster) monsters.get(monsterName).clone();
 		if (room != null && monster != null) {
 			room.addMonster(monster, player.getLookingDirection());
 		}
@@ -329,6 +334,7 @@ public class LevelEditor extends Observable implements Observer {
 		player.setCurrentRoom(rooms.get(room));
 
 		GameDriver driver = new GameDriver();
+		
 		driver.startGame(player, rooms);
 
 	}
@@ -355,7 +361,10 @@ public class LevelEditor extends Observable implements Observer {
 			return;
 		}
 
-		XMLWriter writer = new XMLWriter(rooms, name, startingRoom);
+		XMLWriter writer = new XMLWriter((HashMap<String,FirstPersonRoom>)rooms.clone(), name, startingRoom);
+		
+		JOptionPane.showMessageDialog(null,
+				"Saved successfully!");
 	}
 
 }

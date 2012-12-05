@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.Set;
+
+import javax.swing.JOptionPane;
 
 import model.command.Command;
 import model.command.CommandStack;
@@ -34,6 +37,7 @@ import controller.FPMouseListener;
 
 public class Game extends Observable implements Observer {
 	private static final String GAME_OVER = "GAME OVER";
+	private static final String NEW_GAME = "NEW_GAME";
 	private boolean gameOver;
 	private static final int STARTING_HEALTH = 20;
 	private final static int MAX_WEIGHT = 10;
@@ -117,7 +121,11 @@ public class Game extends Observable implements Observer {
 		rooms.get(startingRoom).visit();
 		player1.setCurrentRoom(rooms.get(startingRoom)); // start game outside
 
+		gameOver = false;
+
 		// Refresh the View
+		setChanged();
+		notifyObservers(NEW_GAME);
 		setChanged();
 		notifyObservers(player1);
 	}
@@ -139,6 +147,8 @@ public class Game extends Observable implements Observer {
 		}
 
 		player1.getCurrentPlayerRoom().visit();
+
+		gameOver = false;
 
 		// Refresh the View
 		setChanged();
@@ -182,6 +192,10 @@ public class Game extends Observable implements Observer {
 			pick(command);
 		} else if (commandWord.equals("drop")) {
 			drop(command);
+		} else if (commandWord.equals("eat")) {
+			eat();
+		} else if (commandWord.equals("unEat")) {
+			unEat();
 		} else if (commandWord.equals("attack")) {
 			attack(command);
 			ArrayList<Monster> m = player1.getCurrentPlayerRoom().getMonsters();
@@ -295,7 +309,7 @@ public class Game extends Observable implements Observer {
 		if (!command.hasSecondWord()) {
 			// if there is no second word, we don't who to attack
 			setChanged();
-			notifyObservers("Attacj what?");
+			notifyObservers("Attack what?");
 			return;
 		}
 
@@ -312,13 +326,41 @@ public class Game extends Observable implements Observer {
 
 		// Decrease the monster's health
 		monster.decreaseHealth();
+		if (player1.hasSword()) {
+			notifyObservers("Since you are carrying the sword, you do double damage!");
+			monster.decreaseHealth();
+		}
 
 		if (!monster.isAlive()) {
 			setChanged();
 			notifyObservers("Good job! You've killed "
 					+ command.getSecondWord());
+
+			// check if all monsters have been killed
+			if (allMostersKilled()) {
+				setChanged();
+				notifyObservers("CONGRATULATIONS! You have killed all the monsters! You win!!");
+			}
+
 			return;
 		}
+	}
+
+	private boolean allMostersKilled() {
+
+		Set<String> keys = rooms.keySet();
+		for (String direction : keys) {
+			ArrayList<Monster> m = new ArrayList<Monster>();
+			m = rooms.get(direction).getMonsters();
+			if (!m.isEmpty()) {
+				for (Monster mm : m) {
+					if (mm.isAlive()) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -339,6 +381,8 @@ public class Game extends Observable implements Observer {
 		}
 		// monsters.get(player1.getLastMonsterAttacked()).increaseHealth();
 		monster.increaseHealth();
+		if (player1.hasSword())
+			monster.increaseHealth();
 	}
 
 	private void drop(Command command) {
@@ -354,10 +398,25 @@ public class Game extends Observable implements Observer {
 			player1.getCurrentPlayerRoom().addItem(item,
 					player1.getLookingDirection());
 		} else {
-			// System.out.println("You cannot drop an item you're not carrying!");
 			setChanged();
 			notifyObservers("You cannot drop an item you're not carrying!");
 		}
+	}
+
+	private void eat() {
+		if (!player1.hasHealItem()) {
+			setChanged();
+			notifyObservers("You are not carrying anything edible!");
+			return;
+		}
+		player1.eat();
+		
+	}
+
+	private void unEat() {
+		player1.unEat();
+    	setChanged();
+    	notifyObservers();
 	}
 
 	/**
@@ -415,14 +474,10 @@ public class Game extends Observable implements Observer {
 		if (nextRoom == null) {
 			setChanged();
 			notifyObservers("There is no door!");
-		} else if (player1.getCurrentPlayerRoom().getWall(direction)
-				.getMonster() != null
-				&& player1.getCurrentPlayerRoom().getWall(direction)
-						.getMonster().isAlive()) {
+		} else if (player1.getCurrentPlayerRoom().getWall(direction).getMonster() != null && player1.getCurrentPlayerRoom().getWall(direction).getMonster().isAlive() && !player1.hasPogoStick()) {
 			setChanged();
 			notifyObservers("Cannot go through that door! There is a monster in the way");
 		} else {
-			// Try to leave current room.
 			player1.setCurrentRoom(nextRoom);
 			nextRoom.visit();
 		}

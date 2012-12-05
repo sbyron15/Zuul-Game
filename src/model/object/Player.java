@@ -3,6 +3,8 @@ package model.object;
 import java.io.Serializable;
 import java.util.*;
 
+import view.FirstPersonItem;
+
 import model.Room;
 
 /**
@@ -22,7 +24,12 @@ public class Player implements Serializable {
 	private int maxWeight;
 	private HashMap<String, Item> itemsInPossesion;
 	private int health;
+	private boolean hasSword = false;
+	private int maxHealth;
+	//private int lastHealth;
 	private String lookingDirection = "north";
+	private Stack<Integer> lastHealthStack;
+	private Item healItemTemp;
 
 	/**
 	 * Constructor for objects of class Player
@@ -40,8 +47,11 @@ public class Player implements Serializable {
 		this.name = name;
 		this.maxWeight = maxWeight;
 		this.health = health;
+		maxHealth = health;
+		//lastHealth = 0;
 		currentWeight = 0;
 		itemsInPossesion = new HashMap<String, Item>();
+		lastHealthStack = new Stack<Integer>();
 	}
 
 	/**
@@ -82,6 +92,7 @@ public class Player implements Serializable {
 		if (canPickItem(item)) {
 			itemsInPossesion.put(itemName, item);
 			currentWeight += item.getItemWeight();
+			if(itemName.equals("Sword"))hasSword = true;
 			return true;
 		} else {
 			return false;
@@ -99,6 +110,7 @@ public class Player implements Serializable {
 			return null;
 		} else {
 			Item itemDropped = itemsInPossesion.get(itemName);
+			if(itemName.equals("Sword"))hasSword = false;
 			currentWeight -= itemDropped.getItemWeight();
 			itemsInPossesion.remove(itemName);
 			return itemDropped;
@@ -152,12 +164,18 @@ public class Player implements Serializable {
 		health++;
 	}
 
-	public void heal() {
-		health += 5;
-	}
-
 	public int getHealth() {
 		return health;
+	}
+	public void eat() {
+		healItemTemp = drop("Plant");
+		lastHealthStack.push(new Integer(health));
+		health = maxHealth;
+	}
+	public void unEat() {
+		if(lastHealthStack.empty() || healItemTemp.equals(null))return;
+		health = lastHealthStack.pop();
+		pick(healItemTemp.getItemName(), healItemTemp);
 	}
 
 	public String getLookingDirection() {
@@ -170,6 +188,21 @@ public class Player implements Serializable {
 
 	public ArrayList<String> getItemsInPosession() {
 		return new ArrayList<String>(itemsInPossesion.keySet());
+	}
+	public boolean hasSword(){
+		return hasSword;
+	}
+	public boolean hasHealItem(){
+		for(String itemName : itemsInPossesion.keySet()){
+			if(itemName.equals("Plant"))return true;
+		}
+		return false;
+	}
+	public boolean hasPogoStick(){
+		for(String itemName : itemsInPossesion.keySet()){
+			if(itemName.equals("PogoStix"))return true;
+		}
+		return false;
 	}
 
 }
